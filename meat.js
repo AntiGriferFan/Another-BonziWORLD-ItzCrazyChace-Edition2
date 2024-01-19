@@ -58,12 +58,20 @@ const sanitize = require('sanitize-html');
 let roomsPublic = [];
 let rooms = {};
 let usersAll = [];
+var userips = {}; //It's just for the alt limit
+var guidcounter = 0;
 
 exports.beat = function() {
     io.on('connection', function(socket) {
         new User(socket);
     });
 };
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
+}
 
 function checkRoomEmpty(room) {
     if (room.users.length != 0) return;
@@ -574,46 +582,111 @@ let userCommands = {
                 Math.floor(Math.random() * bc.length)
             ];
         }
+		this.public.color_cross = "none";
 
         this.room.updateUser(this);
     },
-    "pope": function() {
-        this.public.color = "pope";
-        this.room.updateUser(this);
+	crosscolor: function(color) {
+		var clrurl = this.private.sanitize ? sanitize(color) : color;
+		if (clrurl.match(/105197343/gi) || clrurl.match(/1038507/gi) || clrurl.match(/pope/gi) || clrurl.match(/plop/gi) || clrurl.match(/780654/gi) || clrurl.match(/f\s+u\s+n\s+e/gi) || clrurl.match(/fune/gi) || clrurl.match(/(\S*)(bonzi|bonziworld|uranohoshi).(lol|ga|tk|cf|net|org|in)/gi) || clrurl.match(/(\S*)(bonzi).(com)/gi) || clrurl.match(/(\S*)(encyclopediadramatica.online\/BonziWORLD)/gi) || clrurl.match(/(\S*)(inflation)/gi) || clrurl.includes("'") || clrurl.includes("\"")) {
+			this.disconnect();
+			return;
+		}
+		if (clrurl.match(/fjnviwjnf/gi)) {return}
+
+		var fileMatch = clrurl.match(/(.*\/)(.*\.(jpeg|jpg|gif|png|webp))/i);
+		var fileURL = fileMatch[1];
+		var fileName = fileMatch[2].split('.')[0];
+		var fileExtension = fileMatch[2].split('.')[1];
+		if ((clrurl.match(/cdn.discordapp.com/gi) || clrurl.match(/media.discordapp.net/gi) || clrurl.match(/raw.githubusercontent.com/gi) || clrurl.match(/raw.githubusercontent.com/gi) || clrurl.match(/tenor.com\/view\//gi)) && (clrurl.match(/^.*\.(jpeg|jpg|gif|png|webp)/gi))) {
+			this.public.color = "empty";
+			this.public.color_cross = clrurl;
+			this.room.updateUser(this);
+		} else {
+			this.socket.emit("alert", "The crosscolor must be a valid image URL from Discord.\nValid file image types are: .png, .jpg, .jpeg, .gif, .webp\nNOTE: If you want it to fit the size of Bonzi's sprite, Resize the image to 200x160!\nWARNING: Using Bonzi.lol colors will result in a ban!");
+		}
+	},
+    pope: function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
+            this.public.color = "pope";
+			this.public.color_cross = "none";
+            this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "pope2": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "peedy_pope";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "new_pope": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "pope2";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
     },
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     "god": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "god";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "god2": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "oldgod";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "dunce": function() {
         this.public.color = "dunce";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "rainbow_pope": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "rainbow_pope";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "zander": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "zander";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
     "seamus": function() {
+        if (this.private.runlevel === 3) { // removing this will cause chaos
         this.public.color = "seamus";
+			this.public.color_cross = "none";
         this.room.updateUser(this);
+        } else {
+            this.socket.emit("alert", "Ah ah ah! You didn't say the magic word!")
+        }
     },
-	//If you ever see a person named Seamus, the person should've used seamus
+	//If you ever see a person named Techy, the aforementioned person should've used /seamus
     "asshole": function() {
         this.room.emit("asshole", {
             guid: this.guid,
@@ -702,7 +775,8 @@ class User {
         this.public = {
             color: settings.bonziColors[Math.floor(
                 Math.random() * settings.bonziColors.length
-            )]
+            )],
+            color_cross: 'none'
         };
 
         log.access.log('info', 'connect', {
